@@ -70,7 +70,7 @@ _fifo_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tick
      //(2)  assign the value of *ptr_page to the addr of this page
      list_entry_t *le = head->prev;//用le指示需要被换出的页
      assert(head!=le);
-     struct Page *p = le2page(le, pra_page_link)//le2page宏可以根据链表元素获得对应的Page指针p  
+     struct Page *p = le2page(le, pra_page_link);//le2page宏可以根据链表元素获得对应的Page指针p  
      list_del(le); //将进来最早的页面从队列中删除
      assert(p !=NULL);
      *ptr_page = p; //将进来最早的页面从队列中删除
@@ -151,7 +151,7 @@ struct swap_manager swap_manager_fifo =
 
 
 
-
+/*
 list_entry_t pra_list_head;
 
 static int
@@ -188,12 +188,12 @@ _clock_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tic
      list_entry_t * le = head;
      int i; // 循环三次 寻找合适的置换页
     for (i = 0; i < 2; i++) {
-        /* 第一次循环 寻找 没被访问过的 且 没被修改过的 同时将被访问过的页的 访问位 清 0
+         第一次循环 寻找 没被访问过的 且 没被修改过的 同时将被访问过的页的 访问位 清 0
             第二次循环 依然是寻找 没被访问过的 且 没被修改过的 因为到了此次循环 访问位都被清 0 了 不存在被访问过的
             只需要找没被修改过的即可 同时将被修改过的页 修改位 清 0
             第三次循环 还是找 没被访问过 且 没被修改过的 此时 第一次循环 已经将所有访问位 清 0 了
              第二次循环 也已经将所有修改位清 0 了 故 在第三次循环 一定有 没被访问过 也没被修改过的 页
-        */
+        
         while (le != head) {
             struct Page *page = le2page(le, pra_page_link);            
             pte_t *ptep = get_pte(mm->pgdir, page->pra_vaddr, 0);
@@ -215,7 +215,7 @@ _clock_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tic
      return 0;
 }
 
-仿照swap_fifo.c中的_fifo_check_swap，编写_clock_check_swap
+//仿照swap_fifo.c中的_fifo_check_swap，编写_clock_check_swap
 
 static int
 _clock_check_swap(void) {
@@ -259,7 +259,7 @@ _clock_check_swap(void) {
     return 0;
 }
 
-这些也同样进行仿写：
+//这些也同样进行仿写：
 
 static int
 _clock_init(void)
@@ -289,6 +289,6 @@ struct swap_manager swap_manager_clock =
      .set_unswappable = &_clock_set_unswappable,
      .swap_out_victim = &_clock_swap_out_victim,
      .check_swap      = &_clock_check_swap,
-};
+};*/
 
 
