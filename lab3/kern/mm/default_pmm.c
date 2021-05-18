@@ -94,6 +94,12 @@
  *  change some pages' `p->property` correctly.
  */
 free_area_t free_area;
+/*
+typedef struct {
+    list_entry_t free_list;         // the list header
+    unsigned int nr_free;           // # number of free pages in this free list
+} free_area_t;
+*/
 
 #define free_list (free_area.free_list)
 #define nr_free (free_area.nr_free)
@@ -105,17 +111,17 @@ default_init(void) {
 }
 
 static void
-default_init_memmap(struct Page *base, size_t n) {
-    assert(n > 0);
-    struct Page *p = base;
+default_init_memmap(struct Page *base, size_t n) { //实际物理地址
+    assert(n > 0); //强制要求n>0
+    struct Page *p = base;  
     for (; p != base + n; p ++) {
-        assert(PageReserved(p));
-        p->flags = p->property = 0;
-        set_page_ref(p, 0);
+        assert(PageReserved(p));//要求不是保留页
+        p->flags = p->property = 0;//将每个page的flag与property置0 在ffma中每个空闲块的第一个页表结构使用，表示该块空闲页表个数
+        set_page_ref(p, 0);//被映射次数 0
     }
-    base->property = n;
-    SetPageProperty(base);
-    nr_free += n;
+    base->property = n; //空闲页表数目
+    SetPageProperty(base); //空闲块首页
+    nr_free += n; //空闲页数目
     list_add(&free_list, &(base->page_link));
 }
 
@@ -128,20 +134,22 @@ default_alloc_pages(size_t n) {
     struct Page *page = NULL;
     list_entry_t *le = &free_list;
     while ((le = list_next(le)) != &free_list) {
-        struct Page *p = le2page(le, page_link);
+        struct Page *p =  le2page(le, page_link); //将链表节点转换成page
         if (p->property >= n) {
             page = p;
             break;
         }
     }
     if (page != NULL) {
-        list_del(&(page->page_link));
+        
         if (page->property > n) {
-            struct Page *p = page + n;
-            p->property = page->property - n;
-            list_add(&free_list, &(p->page_link));
+            struct Page *p = page + n;  //第n个
+            p->property = page->property - n; //设置空闲页数量
+		    SetPageProperty(p); //设置未头部
+            list_add_after(&(page->page_link), &(p->page_link));
     }
-        nr_free -= n;
+        list_del(&(page->page_link));
+	    nr_free -= n;
         ClearPageProperty(page);
     }
     return page;
@@ -151,14 +159,17 @@ static void
 default_free_pages(struct Page *base, size_t n) {
     assert(n > 0);
     struct Page *p = base;
+	//将这n个连续页flag与ref清零
     for (; p != base + n; p ++) {
-        assert(!PageReserved(p) && !PageProperty(p));
+        assert(!PageReserved(p) && !PageProperty(p));//检查
         p->flags = 0;
         set_page_ref(p, 0);
     }
+	//设置头页
     base->property = n;
     SetPageProperty(base);
     list_entry_t *le = list_next(&free_list);
+	//空闲块的合并
     while (le != &free_list) {
         p = le2page(le, page_link);
         le = list_next(le);
@@ -175,7 +186,18 @@ default_free_pages(struct Page *base, size_t n) {
         }
     }
     nr_free += n;
-    list_add(&free_list, &(base->page_link));
+	le=list_next(&free_list);
+	//按地址从小到大插入。
+	while(le!=&free_list){
+		p=le2page(le,page_link);
+		if(base+base->property<=p){
+			assert(base+base->property!=p);
+			break;
+		}
+		le=list_next(le);
+	}
+		
+    list_add_before(le, &(base->page_link));
 }
 
 static size_t

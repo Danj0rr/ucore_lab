@@ -372,6 +372,34 @@ get_pte(pde_t *pgdir, uintptr_t la, bool create) {
     }
     return NULL;          // (8) return page table entry
 #endif
+
+	 // PDX(la) 根据la的高10位获得对应的页目录项(一级页表中的某一项)索引(页目录项)
+    // &pgdir[PDX(la)] 根据一级页表项索引从一级页表中找到对应的页目录项指针
+    pde_t *pdep = &pgdir[PDX(la)];
+    // 判断当前页目录项的Present存在位是否为1(对应的二级页表是否存在)
+    if (!(*pdep & PTE_P)) {
+        // 对应的二级页表不存在
+        // *page指向的是这个新创建的二级页表基地址
+        struct Page *page;
+        if (!create || (page = alloc_page()) == NULL) {
+             // 如果create参数为false或是alloc_page分配物理内存失败
+            return NULL;
+        }
+        // 二级页表所对应的物理页 引用数为1
+        set_page_ref(page, 1);
+        // 获得page变量的物理地址
+        uintptr_t pa = page2pa(page);
+        // 将整个page所在的物理页格式胡，全部填满0
+        memset(KADDR(pa), 0, PGSIZE);
+        // la对应的一级页目录项进行赋值，使其指向新创建的二级页表(页表中的数据被MMU直接处理，为了映射效率存放的都是物理地址)
+        // 或PTE_U/PTE_W/PET_P 标识当前页目录项是用户级别的、可写的、已存在的
+        *pdep = pa | PTE_U | PTE_W | PTE_P;
+    }
+
+    // 要想通过C语言中的数组来访问对应数据，需要的是数组基址(虚拟地址),而*pdep中页目录表项中存放了对应二级页表的一个物理地址
+    // PDE_ADDR将*pdep的低12位抹零对齐(指向二级页表的起始基地址)，再通过KADDR转为内核虚拟地址，进行数组访问
+    // PTX(la)获得la线性地址的中间10位部分，即二级页表中对应页表项的索引下标。这样便能得到la对应的二级页表项了
+    return &((pte_t *)KADDR(PDE_ADDR(*pdep)))[PTX(la)];
 }
 
 //get_page - get related Page struct for linear address la using PDT pgdir
@@ -417,6 +445,20 @@ page_remove_pte(pde_t *pgdir, uintptr_t la, pte_t *ptep) {
                                   //(6) flush tlb
     }
 #endif
+	if (*ptep & PTE_P) {
+        // 如果对应的二级页表项存在
+        // 获得*ptep对应的Page结构
+        struct Page *page = pte2page(*ptep);
+        // 关联的page引用数自减1
+        if (page_ref_dec(page) == 0) {
+            // 如果自减1后，引用数为0，需要free释放掉该物理页
+            free_page(page);
+        }
+        // 清空当前二级页表项(整体设置为0)
+        *ptep = 0;
+        // 由于页表项发生了改变，需要TLB快表
+        tlb_invalidate(pgdir, la);
+    }
 }
 
 //page_remove - free an Page which is related linear address la and has an validated pte
