@@ -316,7 +316,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
         goto failed;
     }
     //check the error_code
-    switch (error_code & 3) { //认为都是kernel权限
+    switch (error_code & 3) {
     default: //默认写存在页
             /* error code flag : default is 3 ( W/R=1, P=1): write, present */
     case 2: /* error code flag : (W/R=1, P=0): write, not present */ //写不存在页
@@ -325,11 +325,11 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
             goto failed;
         }
         break;
-    case 1: /* error code flag : (W/R=0, P=1): read, present */   //读存在页，产生异常说明权限不够
+    case 1: /* error code flag : (W/R=0, P=1): read, present */   //读存在页，报错说明权限不够
         cprintf("do_pgfault failed: error code flag = read AND present\n");
         goto failed;
     case 0: /* error code flag : (W/R=0, P=0): read, not present */  //读不存在页
-        if (!(vma->vm_flags & (VM_READ | VM_EXEC))) { //如果不可读 不可执行  即要么可读 要么可执行，可执行就可读
+        if (!(vma->vm_flags & (VM_READ | VM_EXEC))) { //如果不可读或不可执行
             cprintf("do_pgfault failed: error code flag = read AND not present, but the addr's vma cannot read or exec\n");
             goto failed;
         }
@@ -367,15 +367,15 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
     *   mm->pgdir : the PDT of these vma
     *
     */
-    //找到对应的二级页表，不存在则分配1页
+    //找到对应的二级页表，不存在则分配
     if ((ptep = get_pte(mm->pgdir, addr, 1)) == NULL) {
         cprintf("get_pte in do_pgfault failed\n");
         goto failed;
     }
 	
-    //如果是新分配的二级页表，那么对物理页进行分配
+    //如果是新分配的二级页表，那么
     if (*ptep == 0) {  //权限不够，失败！
-        if (pgdir_alloc_page(mm->pgdir, addr, perm) == NULL) { //分配并建立映射
+        if (pgdir_alloc_page(mm->pgdir, addr, perm) == NULL) {
             cprintf("pgdir_alloc_page in do_pgfault failed\n");
             goto failed;
         }
@@ -388,7 +388,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
                 goto failed;
             }    
             page_insert(mm->pgdir, page, addr, perm); //建立虚拟地址和物理地址之间的对应关系 
-            swap_map_swappable(mm, addr, page, 1); //将此页面设置为可交换的  即加入队列
+            swap_map_swappable(mm, addr, page, 1); //将此页面设置为可交换的  
             page->pra_vaddr = addr;
         }
         else {

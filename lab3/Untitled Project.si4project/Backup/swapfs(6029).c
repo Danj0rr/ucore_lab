@@ -14,7 +14,7 @@ swapfs_init(void) {
     }
     max_swap_offset = ide_device_size(SWAP_DEV_NO) / (PGSIZE / SECTSIZE); //最大的交换偏移
 }
-//交换扇区号为偏移*8
+//交换扇区号为偏移*4
 int
 swapfs_read(swap_entry_t entry, struct Page *page) {
     return ide_read_secs(SWAP_DEV_NO, swap_offset(entry) * PAGE_NSECT, page2kva(page), PAGE_NSECT);
