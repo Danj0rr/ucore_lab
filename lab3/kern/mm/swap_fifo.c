@@ -30,6 +30,7 @@ list_entry_t pra_list_head;
  * (2) _fifo_init_mm: init pra_list_head and let  mm->sm_priv point to the addr of pra_list_head.
  *              Now, From the memory control struct mm_struct, we can access FIFO PRA
  */
+
 static int
 _fifo_init_mm(struct mm_struct *mm)
 {     
@@ -38,8 +39,8 @@ _fifo_init_mm(struct mm_struct *mm)
      //cprintf(" mm->sm_priv %x in fifo_init_mm\n",mm->sm_priv);
      return 0;
 }
-/*
- * (3)_fifo_map_swappable: According FIFO PRA, we should link the most recent arrival page at the back of pra_list_head qeueue
+
+ /* (3)_fifo_map_swappable: According FIFO PRA, we should link the most recent arrival page at the back of pra_list_head qeueue
  */
 static int
 _fifo_map_swappable(struct mm_struct *mm, uintptr_t addr, struct Page *page, int swap_in)
@@ -58,6 +59,7 @@ _fifo_map_swappable(struct mm_struct *mm, uintptr_t addr, struct Page *page, int
  *  (4)_fifo_swap_out_victim: According FIFO PRA, we should unlink the  earliest arrival page in front of pra_list_head qeueue,
  *                            then assign the value of *ptr_page to the addr of this page.
  */
+
 static int
 _fifo_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tick)
 {
@@ -151,8 +153,8 @@ struct swap_manager swap_manager_fifo =
 
 
 
-/*
-list_entry_t pra_list_head;
+
+//list_entry_t pra_list_head;
 
 static int
 _clock_init_mm(struct mm_struct *mm)
@@ -177,7 +179,7 @@ _clock_map_swappable(struct mm_struct *mm, uintptr_t addr, struct Page *page, in
     *pte &= ~PTE_D;
     return 0;
 }
-
+/*
 static int
 _clock_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tick)
 {
@@ -198,7 +200,7 @@ _clock_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tic
             struct Page *page = le2page(le, pra_page_link);            
             pte_t *ptep = get_pte(mm->pgdir, page->pra_vaddr, 0);
 
-            if (!(*ptep & PTE_A) && !(*ptep & PTE_D)) { // 没被访问过 也没被修改过 
+            if (!(*ptep & PTE_A) && !(*ptep & PTE_D)) {  没被访问过 也没被修改过 
                 list_del(le);
                 *ptr_page = page;
                 return 0;
@@ -212,6 +214,39 @@ _clock_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tic
         }
         le = le->prev;
     }
+     return 0;
+}*/
+static int
+_clock_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tick)
+{
+     list_entry_t *head=(list_entry_t*) mm->sm_priv;
+     assert(head != NULL);
+     assert(in_tick==0);
+
+     list_entry_t *p = head;
+     while (1) {
+         p = list_next(p);
+         if (p == head) {
+             p = list_next(p);
+         }
+         struct Page *ptr = le2page(p, pra_page_link);
+         pte_t *pte = get_pte(mm -> pgdir, ptr -> pra_vaddr, 0);
+         //获取页表项
+         if ((*pte & PTE_A) == 1) {
+             *pte &= ~PTE_A;
+         }
+         else {
+         if ((*pte & PTE_D) == 1) {// 如果dirty bit为1，改为0
+             *pte &= ~PTE_D;
+         } 
+         else 
+         {// 如果dirty bit为0，则标记为换出页
+             *ptr_page = ptr;
+             list_del(p);
+             break;
+         }
+         }
+     }
      return 0;
 }
 
@@ -277,7 +312,7 @@ static int
 _clock_tick_event(struct mm_struct *mm)
 { return 0; }
 
-最后对swap_manager_clock进行初始化：
+//最后对swap_manager_clock进行初始化：
 
 struct swap_manager swap_manager_clock =
 {
@@ -289,6 +324,6 @@ struct swap_manager swap_manager_clock =
      .set_unswappable = &_clock_set_unswappable,
      .swap_out_victim = &_clock_swap_out_victim,
      .check_swap      = &_clock_check_swap,
-};*/
+};
 
 
