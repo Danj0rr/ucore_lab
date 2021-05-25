@@ -310,28 +310,6 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     //    5. insert proc_struct into hash_list && proc_list
     //    6. call wakeup_proc to make the new child process RUNNABLE
     //    7. set ret vaule using child proc's pid
-    if((proc=alloc_proc())==NULL){
-		goto fork_out;
-    }
-	if(setup_kstack(proc)!=0){
-		goto bad_fork_cleanup_proc; //不清理kstack原因在于，分配内存页失败，实际无kstack被分配，故无需free stack；
-	}
-	if((copy_mm(clone_flags, struct proc))!=0){
-		goto bad_fork_cleanup_kstack;
-	}
-	copy_thread(proc, stack,tf);
-	bool intr_flag;
-    local_intr_save(intr_flag);
-    {
-        proc->pid = get_pid();
-        hash_proc(proc);
-        list_add(&proc_list, &(proc->list_link));
-        nr_process ++;
-    }
-    local_intr_restore(intr_flag);
-	proc->parent=current;
-	wakeup_proc(proc);
-	ret=proc->pid;//成功创建线程，返回pid
 fork_out:
     return ret;
 
