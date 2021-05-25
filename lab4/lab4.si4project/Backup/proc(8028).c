@@ -102,19 +102,6 @@ alloc_proc(void) {
      *       uint32_t flags;                             // Process flag
      *       char name[PROC_NAME_LEN + 1];               // Process name
      */
-     proc->state=PROC_UNINIT;
-	 proc->pid=-1;
-	 proc->runs=0;
-	 proc->kstack=0;
-	 proc->need_resched=0;
-	 proc->parent=NULL;
-	 proc->mm=NULL;
-	 memset(&(proc->context),0,sizeof(context));
-	 proc->tf=NULL;
-	 proc->cr3=boot_cr3;
-	 proc->flags=0;
-	 memset(proc->name,0,sizeof(proc->name));
-	 
     }
     return proc;
 }
@@ -135,7 +122,6 @@ get_proc_name(struct proc_struct *proc) {
 }
 
 // get_pid - alloc a unique pid for process
-//循环遍历proclist，找到最小的未被使用的pid，每次遇到重复，将last pid+1.并从链表头重新遍历
 static int
 get_pid(void) {
     static_assert(MAX_PID > MAX_PROCESS);
