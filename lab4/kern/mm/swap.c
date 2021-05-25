@@ -32,7 +32,7 @@ swap_init(void)
 {
      swapfs_init();
 
-     if (!(1024 <= max_swap_offset && max_swap_offset < MAX_SWAP_OFFSET_LIMIT))
+     if (!(1024 <= max_swap_offset && max_swap_offset < MAX_SWAP_OFFSET_LIMIT)) //至少1024页
      {
           panic("bad max_swap_offset %08x.\n", max_swap_offset);
      }

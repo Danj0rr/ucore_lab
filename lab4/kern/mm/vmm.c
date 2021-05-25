@@ -361,6 +361,36 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
     *   mm->pgdir : the PDT of these vma
     *
     */
+    //找到对应的二级页表，不存在则分配1页
+    if ((ptep = get_pte(mm->pgdir, addr, 1)) == NULL) {
+        cprintf("get_pte in do_pgfault failed\n");
+        goto failed;
+    }
+	
+    //如果是新分配的二级页表，那么对物理页进行分配
+    if (*ptep == 0) {  //权限不够，失败！
+        if (pgdir_alloc_page(mm->pgdir, addr, perm) == NULL) { //分配并建立映射
+            cprintf("pgdir_alloc_page in do_pgfault failed\n");
+            goto failed;
+        }
+    }
+    else {  //页表项非空，尝试换入页面 
+        if(swap_init_ok) {
+            struct Page *page=NULL; //根据mm结构和addr地址，尝试将硬盘中的内容换入至page中
+            if ((ret = swap_in(mm, addr, &page)) != 0) {
+                cprintf("swap_in in do_pgfault failed\n");
+                goto failed;
+            }    
+            page_insert(mm->pgdir, page, addr, perm); //建立虚拟地址和物理地址之间的对应关系 
+            swap_map_swappable(mm, addr, page, 1); //将此页面设置为可交换的  即加入队列
+            page->pra_vaddr = addr;
+        }
+        else {
+            cprintf("no swap_init_ok but ptep is %x, failed\n",*ptep);
+            goto failed;
+        }
+   }
+
 #if 0
     /*LAB3 EXERCISE 1: YOUR CODE*/
     ptep = ???              //(1) try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.

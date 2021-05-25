@@ -12,9 +12,9 @@ swapfs_init(void) {
     if (!ide_device_valid(SWAP_DEV_NO)) {
         panic("swap fs isn't available.\n");
     }
-    max_swap_offset = ide_device_size(SWAP_DEV_NO) / (PGSIZE / SECTSIZE);
+    max_swap_offset = ide_device_size(SWAP_DEV_NO) / (PGSIZE / SECTSIZE); //最大的交换偏移
 }
-
+//交换扇区号为偏移*8
 int
 swapfs_read(swap_entry_t entry, struct Page *page) {
     return ide_read_secs(SWAP_DEV_NO, swap_offset(entry) * PAGE_NSECT, page2kva(page), PAGE_NSECT);
