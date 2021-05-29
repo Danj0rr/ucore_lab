@@ -687,7 +687,7 @@ void *
 kmalloc(size_t n) {
     void * ptr=NULL;
     struct Page *base=NULL;
-    assert(n > 0 && n < 1024*0124);//至多分配123页的连续物理内存（492M）
+    assert(n > 0 && n < 1024*0124);//至多分配31页的连续物理内存
     int num_pages=(n+PGSIZE-1)/PGSIZE;// +(PGSIZE-1)的目的在于让num向上取整 相当于n/PGSIZE + 1
     base = alloc_pages(num_pages);
     assert(base != NULL);
