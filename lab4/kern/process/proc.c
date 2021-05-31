@@ -109,7 +109,7 @@ alloc_proc(void) {
 	 proc->need_resched=0;
 	 proc->parent=NULL;
 	 proc->mm=NULL;
-	 memset(&(proc->context),0,sizeof(context));
+	 memset(&(proc->context),0,sizeof(proc->context));
 	 proc->tf=NULL;
 	 proc->cr3=boot_cr3;
 	 proc->flags=0;
@@ -316,7 +316,7 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
 	if(setup_kstack(proc)!=0){
 		goto bad_fork_cleanup_proc; //不清理kstack原因在于，分配内存页失败，实际无kstack被分配，故无需free stack；
 	}
-	if((copy_mm(clone_flags, struct proc))!=0){
+	if((copy_mm(clone_flags, proc))!=0){
 		goto bad_fork_cleanup_kstack;
 	}
 	copy_thread(proc, stack,tf);
