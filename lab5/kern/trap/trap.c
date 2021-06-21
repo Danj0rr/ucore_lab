@@ -57,7 +57,8 @@ idt_init(void) {
      //you should update your lab1 code (just add ONE or TWO lines of code), let user app to use syscall to get the service of ucore
      //so you should setup the syscall interrupt gate in here
     extern uintptr_t __vectors[];
-    for (int i = 0; i < 256; i++) {
+    int i;
+    for (i = 0; i < sizeof(idt) / sizeof(struct gatedesc); i ++) {
         SETGATE(idt[i], 0, GD_KTEXT, __vectors[i], DPL_KERNEL);
     }
     // 增加了系统调用的中断描述符，DPL特权级为DPL_USER，因为是提供给用户进程的
@@ -232,7 +233,7 @@ trap_dispatch(struct trapframe *tf) {
          */
         ticks++;
         if (ticks % TICK_NUM == 0) {
-            // print_ticks();
+
             assert(current != NULL);  //时间片轮转 100个时钟周期
             current->need_resched = 1;
         }

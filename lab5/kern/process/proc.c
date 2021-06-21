@@ -599,7 +599,7 @@ load_icode(unsigned char *binary, size_t size) {
     assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-PGSIZE , PTE_USER) != NULL);
     assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-2*PGSIZE , PTE_USER) != NULL);
     assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-3*PGSIZE , PTE_USER) != NULL);
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-4*PGSIZE , PTE_USER) != NULL); //干哦 怎么就四个页 说好的256呢
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-4*PGSIZE , PTE_USER) != NULL);
     
     //(5) set current process's mm, sr3, and set CR3 reg = physical addr of Page Directory 甚么sr3 完全不知道呢
     mm_count_inc(mm);
@@ -620,14 +620,11 @@ load_icode(unsigned char *binary, size_t size) {
      *          tf_eflags should be set to enable computer to produce Interrupt 开中断
      */
     tf->tf_cs = USER_CS;
-    
-    tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS; 
-    
+    tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS;
     tf->tf_esp = USTACKTOP;
     
     tf->tf_eip = elf->e_entry;
-    
-    tf->tf_eflags = FL_IF; //默认开中断
+    tf->tf_eflags = FL_IF;
     ret = 0;
 out:
     return ret;
