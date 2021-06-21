@@ -480,7 +480,7 @@ copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end, bool share) {
             if ((nptep = get_pte(to, start, 1)) == NULL) {
                 return -E_NO_MEM;
             }
-        uint32_t perm = (*ptep & PTE_USER); //用户权限
+        uint32_t perm = (*ptep & PTE_USER);
         //get page from ptep
         struct Page *page = pte2page(*ptep);
         // alloc a page for process B
@@ -502,10 +502,6 @@ copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end, bool share) {
          * (3) memory copy from src_kvaddr to dst_kvaddr, size is PGSIZE
          * (4) build the map of phy addr of  nage with the linear addr start
          */
-        void* src_kvaddr = page2kva(page);
-        void* dst_kvaddr = page2kva(npage);
-        memcpy(dst_kvaddr, src_kvaddr, PGSIZE);
-        ret = page_insert(to, npage, start, perm);
         assert(ret == 0);
         }
         start += PGSIZE;

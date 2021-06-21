@@ -56,6 +56,13 @@ idt_init(void) {
      /* LAB5 YOUR CODE */ 
      //you should update your lab1 code (just add ONE or TWO lines of code), let user app to use syscall to get the service of ucore
      //so you should setup the syscall interrupt gate in here
+    extern uintptr_t __vectors[];
+    for (int i = 0; i < 256; i++) {
+        SETGATE(idt[i], 0, GD_KTEXT, __vectors[i], DPL_KERNEL);
+    }
+    // 增加了系统调用的中断描述符，DPL特权级为DPL_USER，因为是提供给用户进程的
+    SETGATE(idt[T_SYSCALL], 0, GD_KTEXT, __vectors[T_SYSCALL], DPL_USER);
+    lidt(&idt_pd);
 }
 
 static const char *
@@ -205,7 +212,7 @@ trap_dispatch(struct trapframe *tf) {
             }
         }
         break;
-    case T_SYSCALL:
+    case T_SYSCALL: //增加了系统调用
         syscall();
         break;
     case IRQ_OFFSET + IRQ_TIMER:
@@ -223,6 +230,13 @@ trap_dispatch(struct trapframe *tf) {
         /* you should upate you lab1 code (just add ONE or TWO lines of code):
          *    Every TICK_NUM cycle, you should set current process's current->need_resched = 1
          */
+        ticks++;
+        if (ticks % TICK_NUM == 0) {
+            // print_ticks();
+            assert(current != NULL);  //时间片轮转 100个时钟周期
+            current->need_resched = 1;
+        }
+        
   
         break;
     case IRQ_OFFSET + IRQ_COM1:

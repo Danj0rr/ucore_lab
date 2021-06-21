@@ -18,7 +18,7 @@ sys_fork(uint32_t arg[]) {
     uintptr_t stack = tf->tf_esp;
     return do_fork(0, stack, tf);
 }
-
+//free
 static int
 sys_wait(uint32_t arg[]) {
     int pid = (int)arg[0];
@@ -34,7 +34,7 @@ sys_exec(uint32_t arg[]) {
     size_t size = (size_t)arg[3];
     return do_execve(name, len, binary, size);
 }
-
+//需要被调度 置为1
 static int
 sys_yield(uint32_t arg[]) {
     return do_yield();
@@ -63,7 +63,7 @@ sys_pgdir(uint32_t arg[]) {
     print_pgdir();
     return 0;
 }
-
+//函数指针数组，参数为arg[]
 static int (*syscalls[])(uint32_t arg[]) = {
     [SYS_exit]              sys_exit,
     [SYS_fork]              sys_fork,
@@ -81,16 +81,17 @@ static int (*syscalls[])(uint32_t arg[]) = {
 void
 syscall(void) {
     struct trapframe *tf = current->tf;
-    uint32_t arg[5];
+    uint32_t arg[5]; //参数
     int num = tf->tf_regs.reg_eax;
     if (num >= 0 && num < NUM_SYSCALLS) {
         if (syscalls[num] != NULL) {
+			//取参
             arg[0] = tf->tf_regs.reg_edx;
             arg[1] = tf->tf_regs.reg_ecx;
             arg[2] = tf->tf_regs.reg_ebx;
             arg[3] = tf->tf_regs.reg_edi;
             arg[4] = tf->tf_regs.reg_esi;
-            tf->tf_regs.reg_eax = syscalls[num](arg);
+            tf->tf_regs.reg_eax = syscalls[num](arg); //保存返回结果至trap的eax
             return ;
         }
     }

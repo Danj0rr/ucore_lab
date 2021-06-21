@@ -566,7 +566,7 @@ load_icode(unsigned char *binary, size_t size) {
 
       //(3.6.2) build BSS section of binary program
         end = ph->p_va + ph->p_memsz;
-        if (start < la) { //未把一个页占满，剩余部分作为bss
+        if (start < la) {
             /* ph->p_memsz == ph->p_filesz */
             if (start == end) {
                 continue ;
@@ -579,7 +579,7 @@ load_icode(unsigned char *binary, size_t size) {
             start += size;
             assert((end < la && start == end) || (end >= la && start == la));
         }
-        while (start < end) { //更多的bss 好耶
+        while (start < end) {
             if ((page = pgdir_alloc_page(mm->pgdir, la, perm)) == NULL) {
                 goto bad_cleanup_mmap;
             }
@@ -592,16 +592,16 @@ load_icode(unsigned char *binary, size_t size) {
         }
     }
     //(4) build user stack memory
-    vm_flags = VM_READ | VM_WRITE | VM_STACK; //用户栈空间
-    if ((ret = mm_map(mm, USTACKTOP - USTACKSIZE, USTACKSIZE, vm_flags, NULL)) != 0) { //usertop 0xB0000000
+    vm_flags = VM_READ | VM_WRITE | VM_STACK;
+    if ((ret = mm_map(mm, USTACKTOP - USTACKSIZE, USTACKSIZE, vm_flags, NULL)) != 0) {
         goto bad_cleanup_mmap;
     }
     assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-PGSIZE , PTE_USER) != NULL);
     assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-2*PGSIZE , PTE_USER) != NULL);
     assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-3*PGSIZE , PTE_USER) != NULL);
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-4*PGSIZE , PTE_USER) != NULL); //干哦 怎么就四个页 说好的256呢
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-4*PGSIZE , PTE_USER) != NULL);
     
-    //(5) set current process's mm, sr3, and set CR3 reg = physical addr of Page Directory 甚么sr3 完全不知道呢
+    //(5) set current process's mm, sr3, and set CR3 reg = physical addr of Page Directory
     mm_count_inc(mm);
     current->mm = mm;
     current->cr3 = PADDR(mm->pgdir);
@@ -609,7 +609,7 @@ load_icode(unsigned char *binary, size_t size) {
 
     //(6) setup trapframe for user environment
     struct trapframe *tf = current->tf;
-    memset(tf, 0, sizeof(struct trapframe)); //清tf
+    memset(tf, 0, sizeof(struct trapframe));
     /* LAB5:EXERCISE1 YOUR CODE
      * should set tf_cs,tf_ds,tf_es,tf_ss,tf_esp,tf_eip,tf_eflags
      * NOTICE: If we set trapframe correctly, then the user level process can return to USER MODE from kernel. So
@@ -617,17 +617,8 @@ load_icode(unsigned char *binary, size_t size) {
      *          tf_ds=tf_es=tf_ss should be USER_DS segment
      *          tf_esp should be the top addr of user stack (USTACKTOP)
      *          tf_eip should be the entry point of this binary program (elf->e_entry)
-     *          tf_eflags should be set to enable computer to produce Interrupt 开中断
+     *          tf_eflags should be set to enable computer to produce Interrupt
      */
-    tf->tf_cs = USER_CS;
-    
-    tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS; 
-    
-    tf->tf_esp = USTACKTOP;
-    
-    tf->tf_eip = elf->e_entry;
-    
-    tf->tf_eflags = FL_IF; //默认开中断
     ret = 0;
 out:
     return ret;
