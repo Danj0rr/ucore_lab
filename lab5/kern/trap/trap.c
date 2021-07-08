@@ -233,6 +233,7 @@ trap_dispatch(struct trapframe *tf) {
         ticks++;
         if (ticks % TICK_NUM == 0) {
             // print_ticks();
+            //ticks = 0；
             assert(current != NULL);  //时间片轮转 100个时钟周期
             current->need_resched = 1;
         }
